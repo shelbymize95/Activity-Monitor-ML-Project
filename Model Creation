@@ -1,0 +1,92 @@
+#load packages 
+import pandas as pd
+import numpy as np
+from google.colab import files
+import matplotlib.pyplot as plt
+%matplotlib inline
+from matplotlib.patches import Rectangle
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+from sklearn.utils import resample
+%matplotlib
+import seaborn as sns; sns.set()
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn import preprocessing
+from sklearn import svm, datasets
+import sklearn.model_selection as model_selection
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import f1_score
+
+#load in dataset 
+data = files.upload()
+
+df = pd.read_csv('mhealth_raw_data (4).csv')
+df
+
+#Fix the data - its unbalanced b/c standing has the most, best way to handle this is to resample
+data_majority = df[(df['Activity']==0.0)]
+data_minorities = df[(df['Activity']!=0.0)]
+ 
+data_majority_downsampled = resample(data_majority,n_samples=35000, random_state=42)
+data2 = pd.concat([data_majority_downsampled, data_minorities])
+data2.Activity.value_counts()
+
+#check for missing values (no missing values)
+data2.isna().any()
+data2.dropna()
+#check for duplicates and remove 
+data2 = data2.drop(data2[data2.duplicated(keep = 'first')].index, axis=0)
+
+
+#BUILD MODELS
+from sklearn import datasets
+#split data into X and Y
+y= data2.pop('Activity')
+x= data2.drop('subject', axis=1)
+x_removed_alx= x.drop('alx',axis=1)
+
+#checking to see if ALX was removed in dataset
+x_removed_alx
+
+#split into test and training data 
+seed = 50
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(x,y, test_size=0.333, random_state = seed)
+X_train_removed_alx, X_test_removed_alx, y_train_removed_alx, y_test_removed_alx = train_test_split(x_removed_alx,y, test_size=0.333, random_state = seed)
+
+
+#Normalize data
+X_train_n = preprocessing.normalize(X_train)
+X_test_n = preprocessing.normalize(X_test)
+X_train_n_removed_alx = preprocessing.normalize(X_train_removed_alx)
+X_test_n_removed_alx = preprocessing.normalize(X_test_removed_alx)
+
+#SVM
+rbf = svm.SVC(kernel='rbf', gamma=0.005, C=50).fit(X_train, y_train)
+# poly = svm.SVC(kernel='poly', degree=4, C=50).fit(X_train, y_train)
+# linear = svm.SVC(kernel='linear', gamma=0.005, C=50).fit(X_train, y_train)
+
+#normalized
+rbf_n = svm.SVC(kernel='rbf', gamma=0.005, C=50).fit(X_train_n, y_train)
+# poly_n = svm.SVC(kernel='poly', degree=4, C=50).fit(X_train_n, y_train)
+# linear_n = svm.SVC(kernel='linear', gamma=0.005, C=50).fit(X_train_n, y_train)
+
+
+#calculate efficiency of models by testing the three classifers using the test dataset
+# poly_pred = poly.predict(X_test)
+rbf_pred = rbf.predict(X_test)
+# linear_pred = linear.predict(X_test)
+
+#normalized 
+# poly_pred_n = poly_n.predict(X_test_n)
+rbf_pred_n = rbf_n.predict(X_test_n)
+# linear_pred_n = linear_n.predict(X_test_n)
+
+
+
+
+
+
