@@ -1,0 +1,143 @@
+#load packages
+import pandas as pd
+import numpy as np
+from google.colab import files
+import matplotlib.pyplot as plt
+%matplotlib inline
+from matplotlib.patches import Rectangle
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+from sklearn.utils import resample
+%matplotlib
+import seaborn as sns; sns.set()
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+
+#load in dataset 
+data = files.upload()
+
+#name dataset
+data = pd.read_csv('mhealth_raw_data.csv')
+df = pd.read_csv('mhealth_raw_data.csv')
+
+#drop subject
+df.drop(['subject'], axis = 1, inplace = True)
+
+#display data types
+data.info()
+data
+
+#DATA EXPLORATION
+#check counts of activity
+data.Activity.value_counts()
+#check for missing values (no missing values)
+data.isna().any()
+#check duplicates and remove
+# data2 = data2.drop(data2[data2.duplicated(keep = 'first')].index, axis=0)
+
+#calulate the % of each activity category & plot (doing nothing has the most)
+data.Activity.value_counts(normalize=True)
+data.Activity.value_counts(normalize=True).plot.barh()
+plt.show
+
+#Fix the data - its unbalanced b/c standing has the most, best way to handle this is to resample
+data_majority = df[data.Activity==0]
+data_minorities = df[data.Activity!=0]
+ 
+data_majority_downsampled = resample(data_majority,n_samples=35000, random_state=42)
+data2 = pd.concat([data_majority_downsampled, data_minorities])
+data2.Activity.value_counts()
+
+#calulate the % of each activity category & plot (after resample)
+data2.Activity.value_counts(normalize=True)
+data2.Activity.value_counts(normalize=True).plot.barh()
+plt.show
+
+#check for relationships in model
+#check correlation value
+plt.figure(figsize=(20,10)) 
+sns.heatmap(data2.corr(), annot=True) 
+  #No linear relationships detected based on the correlation value 
+  
+#look at VIF factor to detect multicollinearity
+#Logistic Regression 
+#Check for Multicollinearity
+
+# Import library for VIF
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+
+def calc_vif(X):
+
+    # Calculating VIF
+    vif = pd.DataFrame()
+    vif["variables"] = X.columns
+    vif["VIF"] = [variance_inflation_factor(X.values, i) for i in range(X.shape[1])]
+
+    return(vif)
+X = data2.iloc[:,:-1]
+calc_vif(X)
+
+#All values are below 4.... However ALY is at 4.9. Potenital multicollinarity here.
+  #will be removing in final model to see if it improves accuracy
+
+#look at statistics of model
+data2.describe().T
+
+#Look at mean of attributes by activity
+alx_mean = data2[['alx', 'Activity']].groupby('Activity').mean()
+aly_mean = data2[['aly','Activity']].groupby('Activity').mean()
+alz_mean = data2[['alz','Activity']].groupby('Activity').mean()
+glx_mean = data2[['glx','Activity']].groupby('Activity').mean()
+gly_mean = data2[['gly','Activity']].groupby('Activity').mean()
+glz_mean = data2[['glz','Activity']].groupby('Activity').mean()
+arx_mean = data2[['arx','Activity']].groupby('Activity').mean()
+ary_mean = data2[['ary','Activity']].groupby('Activity').mean()
+arz_mean = data2[['arz','Activity']].groupby('Activity').mean()
+grx_mean = data2[['grx','Activity']].groupby('Activity').mean()
+gry_mean = data2[['gry','Activity']].groupby('Activity').mean()
+grz_mean = data2[['grz','Activity']].groupby('Activity').mean()
+
+#check the mean values verses all activites 
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+plt.style.use('classic')
+%matplotlib inline
+# Call plot() method on the appropriate object
+d_m.plot.line()
+s_m.plot.line()
+#data looks to be overlapping (meaning not much difference between the mean values for each activity)
+#since acceleration and rotation seem to be taking two different types of measurement,
+  #seperate them out and see how the graph changes for the mean value 
+ 
+#Rotation
+means_g = glx_mean.join(gly_mean).join(glz_mean).join(grx_mean).join(gry_mean).join(grz_mean)
+means_g.plot.line()
+means_g.plot.bar(stacked=True)
+
+#acceleration
+means_alx = alx_mean.join(aly_mean).join(alz_mean).join(arx_mean).join(ary_mean).join(arz_mean)
+means.plot.line()
+means.plot.bar(stacked=True)
+
+#The means now look far different between each activity for rotation and acceleration. 
+#When acceleration and roation are together on the graph, it looks to be a scaling
+#issue, lets normalize the data and see if there is a difference in the final model. 
+
+#noramlize data, first split data into training and test set
+#split into test and training data 
+seed = 50
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(x,y, test_size=0.333, random_state = seed)
+X_train_removed_alx, X_test_removed_alx, y_train_removed_alx, y_test_removed_alx = train_test_split(x_removed_alx,y, test_size=0.333, random_state = seed)
+X_train_n = preprocessing.normalize(X_train)
+X_test_n = preprocessing.normalize(X_test)
+
+X_train_n_removed_alx = preprocessing.normalize(X_train_removed_alx)
+X_test_n_removed_alx = preprocessing.normalize(X_test_removed_alx)
+ 
+#View relationship between variables on a pairplot
+sns.pairplot(data2, hue = 'Activity')
+
+#it looks like there non-linear relationships, going to try out SVM models 
